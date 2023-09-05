@@ -2,15 +2,15 @@
   "cameras": [
     {
       "source": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-TEST.A",
-      "target": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-TEST-1"
+      "target": "rtmp://demo-media-vm.eastasia.cloudapp.azure.com:1935/RV-TEST-1"
     },
     {
       "source": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-TEST.B",
-      "target": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-TEST-2"
+      "target": "rtmp://demo-media-vm.eastasia.cloudapp.azure.com:1935/RV-TEST-2"
     },
     {
       "source": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-TEST.A",
-      "target": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-TEST-3"
+      "target": "rtmp://demo-media-vm.eastasia.cloudapp.azure.com:1935/RV-TEST-3"
     }
   ]
 }
