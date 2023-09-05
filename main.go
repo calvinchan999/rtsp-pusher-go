@@ -38,7 +38,7 @@ func main() {
 	wg.Add(len(config.Cameras))
 
 	for i, camera := range config.Cameras {
-		go func(src string, tg string, index int) {
+		go func(src string, tg string, resolution string, framerate int, encoder string, index int) {
 			defer wg.Done()
 			for {
 				err := ffmpeg.Input(src).
@@ -65,7 +65,7 @@ func main() {
 				}
 				time.Sleep(5 * time.Second)
 			}
-		}(camera.Source, camera.Target, i)
+		}(camera.Source, camera.Target, camera.resolution, camera.frameRate, camera.encoder, i)
 	}
 
 	wg.Wait() // Wait for all Goroutines to finish

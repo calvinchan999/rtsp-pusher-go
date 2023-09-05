@@ -2,15 +2,24 @@
   "cameras": [
     {
       "source": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/TEST",
-      "target": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-ROBOT-1.1"
+      "target": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-ROBOT-1.1",
+      "resolution": "480x270",
+      "framerate": 15,
+      "encoder": "libx265"
     },
     {
       "source": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/TEST",
-      "target": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-ROBOT-1.2"
+      "target": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-ROBOT-1.2",
+      "resolution": "480x270",
+      "framerate": 15,
+      "encoder": "libx265"
     },
     {
       "source": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/TEST",
-      "target": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-ROBOT-1.3"
+      "target": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-ROBOT-1.3",
+      "resolution": "480x270",
+      "framerate": 15,
+      "encoder": "libx265"
     }
   ]
 }
