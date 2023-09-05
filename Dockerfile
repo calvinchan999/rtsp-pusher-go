@@ -6,6 +6,8 @@ COPY . /app
 
 WORKDIR /app
 
+RUN apt install ffmpeg
+
 RUN go build -o main ./
 
 CMD ["/app/main"]
