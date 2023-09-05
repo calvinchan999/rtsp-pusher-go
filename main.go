@@ -14,6 +14,9 @@ import (
 type Camera struct {
 	Source string `json:"source"`
 	Target string `json:"target"`
+	Resolution string `json:"resolution"`
+	Framerate int `json:"framerate"`
+	Encoder string `json:"encoder"`
 }
 
 type Config struct {
@@ -65,7 +68,7 @@ func main() {
 				}
 				time.Sleep(5 * time.Second)
 			}
-		}(camera.Source, camera.Target, camera.resolution, camera.frameRate, camera.encoder, i)
+		}(camera.Source, camera.Target, camera.Resolution, camera.Framerate, camera.Encoder, i)
 	}
 
 	wg.Wait() // Wait for all Goroutines to finish
