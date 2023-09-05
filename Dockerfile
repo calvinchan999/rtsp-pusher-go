@@ -1,13 +1,11 @@
 FROM golang:1.21.0-alpine3.18
 
-RUN mkdir /app/
-
-COPY . /app
+RUN apk add --no-cache ffmpeg
 
 WORKDIR /app
 
-RUN apt install ffmpeg
+COPY . .
 
-RUN go build -o main ./
+RUN go build -o main .
 
 CMD ["/app/main"]
