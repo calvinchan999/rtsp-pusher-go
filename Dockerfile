@@ -1,6 +1,6 @@
-FROM golang:1.21.0
+FROM golang:1.20.7-alpine3.18
 
-RUN apt install ffmpeg
+RUN apk add --no-cache ffmpeg
 
 WORKDIR /app
 
