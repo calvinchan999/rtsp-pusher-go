@@ -42,8 +42,8 @@ func main() {
 			defer wg.Done()
 			for {
 				err := ffmpeg.Input(src).
-					Output(tg, ffmpeg.KwArgs{"format": "rtmp", "s": "480x270", "r": "15", "c:a": "copy", "c:v": "libx265"}).
-					OverWriteOutput().Run()
+					Output(tg, ffmpeg.KwArgs{"format": "rtsp", "s": "480x270", "r": "15", "c:a": "copy", "c:v": "libx265"}).
+					OverWriteOutput().Run() // ErrorToStdOut
 				
 				// source
 				srcLast := strings.LastIndex(src, "/") + 1

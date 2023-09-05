@@ -1,16 +1,16 @@
 {
   "cameras": [
     {
-      "source": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-TEST.A",
-      "target": "rtmp://demo-media-vm.eastasia.cloudapp.azure.com:1935/RV-TEST-1"
+      "source": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/TEST",
+      "target": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-ROBOT-1.1"
     },
     {
-      "source": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-TEST.B",
-      "target": "rtmp://demo-media-vm.eastasia.cloudapp.azure.com:1935/RV-TEST-2"
+      "source": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/TEST",
+      "target": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-ROBOT-1.2"
     },
     {
-      "source": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-TEST.A",
-      "target": "rtmp://demo-media-vm.eastasia.cloudapp.azure.com:1935/RV-TEST-3"
+      "source": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/TEST",
+      "target": "rtsp://demo-media-vm.eastasia.cloudapp.azure.com:8554/RV-ROBOT-1.3"
     }
   ]
 }
