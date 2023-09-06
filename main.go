@@ -1,75 +1,108 @@
 package main
 
 import (
-	"fmt"
-	_"os"
-	"io/ioutil"
 	"encoding/json"
+	// "fmt"
+	"io/ioutil"
+	"log"
+	"strings"
 	"sync"
 	"time"
-	"strings"
+
 	ffmpeg "github.com/u2takey/ffmpeg-go"
 )
 
 type Camera struct {
-	Source string `json:"source"`
-	Target string `json:"target"`
+	Source     string `json:"source"`
+	Target     string `json:"target"`
 	Resolution string `json:"resolution"`
-	Framerate int `json:"framerate"`
-	Encoder string `json:"encoder"`
+	Framerate  int    `json:"framerate"`
+	Encoder    string `json:"encoder"`
 }
 
 type Config struct {
 	Cameras []Camera `json:"cameras"`
 }
 
-func main() {
+type GoroutineParams struct {
+	Source     string
+	Target     string
+	Resolution string
+	Framerate  int
+	Encoder    string
+	Index      int
+}
 
+func main() {
 	byteValue, err := ioutil.ReadFile("./config.json")
 	if err != nil {
-		fmt.Print(err)
+		log.Fatal(err)
 	}
 
 	var config Config
 	if err := json.Unmarshal(byteValue, &config); err != nil {
-		fmt.Println("Failed to unmarshal JSON:", err)
+		log.Println("Failed to unmarshal JSON:", err)
 		return
 	}
 
+	concurrencyLimit := 5 // Adjust the value based on your system's capabilities
+	goroutineChannel := make(chan struct{}, concurrencyLimit)
 	var wg sync.WaitGroup
 
-	wg.Add(len(config.Cameras))
-
 	for i, camera := range config.Cameras {
-		go func(src string, tg string, resolution string, framerate int, encoder string, index int) {
-			defer wg.Done()
-			for {
-				err := ffmpeg.Input(src).
-					Output(tg, ffmpeg.KwArgs{"format": "rtsp", "s": resolution, "r": framerate, "c:a": "copy", "c:v": encoder}).
-					OverWriteOutput().Run() // ErrorToStdOut
-				
-				// source
-				srcLast := strings.LastIndex(src, "/") + 1
-				srcLastStr := src[srcLast:]
+		params := GoroutineParams{
+			Source:     camera.Source,
+			Target:     camera.Target,
+			Resolution: camera.Resolution,
+			Framerate:  camera.Framerate,
+			Encoder:    camera.Encoder,
+			Index:      i + 1,
+		}
 
-				// target
-				tgLast := strings.LastIndex(src, "/") + 1
-				tgLastStr := tg[tgLast:]
-
-				combindedStr :=  fmt.Sprintf("Channel: %v Source Name: %v Target Name: %v", index + 1, srcLastStr, tgLastStr)
-
-				if err != nil {
-					fmt.Println("Failed to build FFmpeg command:", err)
-					fmt.Println(combindedStr)
-				} else {
-					// If the FFmpeg command completes successfully, break the loop
-					fmt.Println("Disconnect")
-					fmt.Println(combindedStr)
-				}
-				time.Sleep(5 * time.Second)
-			}
-		}(camera.Source, camera.Target, camera.Resolution, camera.Framerate, camera.Encoder, i)
+		wg.Add(1)
+		go processCamera(&wg, goroutineChannel, params)
 	}
 
 	wg.Wait() // Wait for all Goroutines to finish
+}
+
+func processCamera(wg *sync.WaitGroup, goroutineChannel chan struct{}, params GoroutineParams) {
+	defer wg.Done()
+	for {
+		goroutineChannel <- struct{}{} // Acquire a spot in the channel
+		err := runFFmpegCommand(params)
+		<-goroutineChannel // Release the spot in the channel
+
+		if err != nil {
+			log.Println("Failed to build FFmpeg command:", err)
+		} else {
+			log.Println("Disconnect")
+		}
+		time.Sleep(5 * time.Second)
+	}
+}
+
+func runFFmpegCommand(params GoroutineParams) error {
+	srcLast := lastPathComponent(params.Source)
+	tgLast := lastPathComponent(params.Target)
+
+	log.Printf("Channel: %v Source Name: %v Target Name: %v\n", params.Index, srcLast, tgLast)
+
+	err := ffmpeg.Input(params.Source).
+		Output(params.Target, ffmpeg.KwArgs{
+			"format":     "rtsp",
+			"s":          params.Resolution,
+			"r":          params.Framerate,
+			"c:a":        "copy",
+			"c:v":        params.Encoder,
+		}).
+		OverWriteOutput().
+		Run()
+
+	return err
+}
+
+func lastPathComponent(path string) string {
+	index := strings.LastIndex(path, "/") + 1
+	return path[index:]
 }
