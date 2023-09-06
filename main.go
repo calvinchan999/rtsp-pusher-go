@@ -3,7 +3,8 @@ package main
 import (
 	"encoding/json"
 	// "fmt"
-	"io/ioutil"
+	// "io/ioutil"
+	"os"
 	"log"
 	"strings"
 	"sync"
@@ -34,18 +35,22 @@ type GoroutineParams struct {
 }
 
 func main() {
-	byteValue, err := ioutil.ReadFile("./config.json")
+	byteValue, err := os.Open("./config.json")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var config Config
-	if err := json.Unmarshal(byteValue, &config); err != nil {
-		log.Println("Failed to unmarshal JSON:", err)
-		return
+	// if err := json.Unmarshal(byteValue, &config); err != nil {
+	// 	log.Println("Failed to unmarshal JSON:", err)
+	// 	return
+	// }
+
+	if err := json.NewDecoder(byteValue).Decode(&config); err != nil {
+		log.Println("Failed to decode JSON:", err)
 	}
 
-	concurrencyLimit := 5 // Adjust the value based on your system's capabilities
+	concurrencyLimit := 8 // Adjust the value based on your system's capabilities
 	goroutineChannel := make(chan struct{}, concurrencyLimit)
 	var wg sync.WaitGroup
 
