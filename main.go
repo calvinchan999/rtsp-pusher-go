@@ -19,6 +19,7 @@ type Camera struct {
 	Resolution string `json:"resolution"`
 	Framerate  int    `json:"framerate"`
 	Encoder    string `json:"encoder"`
+	Rotation   string `json:"rotation`
 }
 
 type Config struct {
@@ -31,6 +32,7 @@ type GoroutineParams struct {
 	Resolution string
 	Framerate  int
 	Encoder    string
+	Rotation   string
 	Index      int
 }
 
@@ -61,6 +63,7 @@ func main() {
 			Resolution: camera.Resolution,
 			Framerate:  camera.Framerate,
 			Encoder:    camera.Encoder,
+			Rotation:   camera.Rotation,
 			Index:      i + 1,
 		}
 
@@ -93,15 +96,26 @@ func runFFmpegCommand(params GoroutineParams) error {
 
 	log.Printf("Channel: %v Source Name: %v Target Name: %v\n", params.Index, srcLast, tgLast)
 
-	err := ffmpeg.Input(params.Source).
-		Output(params.Target, ffmpeg.KwArgs{
-			"format":     "rtsp",
-			"s":          params.Resolution,
-			"r":          params.Framerate,
-			"c:a":        "copy",
-			"c:v":        params.Encoder,
-		}).
+	args := ffmpeg.KwArgs{
+		"format":     "rtsp",
+		"s":          params.Resolution,
+		"r":          params.Framerate,
+		"c:a":        "copy",
+		"c:v":        "libx264",
+		"bf":		  "0",
+		"preset":	  "veryfast",
+		"tune":		  "zerolatency",
+		"flags":	  "low_delay",
+	}
+
+	if params.Rotation != "" {
+		args["vf"] = "transpose=0"
+	}
+
+	err := ffmpeg.Input(params.Source , ffmpeg.KwArgs{"rtsp_transport": "tcp"}).
+		Output(params.Target, args).
 		OverWriteOutput().
+		ErrorToStdOut().
 		Run()
 
 	return err
