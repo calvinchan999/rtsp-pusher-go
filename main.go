@@ -101,8 +101,7 @@ func runFFmpegCommand(params GoroutineParams) error {
 		"s":          params.Resolution,
 		"r":          params.Framerate,
 		"c:a":        "copy",
-		"c:v":        "libx264",
-		"bf":		  "0",
+		"c:v":        params.Encoder,
 		"preset":	  "veryfast",
 		"tune":		  "zerolatency",
 		"flags":	  "low_delay",
@@ -110,6 +109,8 @@ func runFFmpegCommand(params GoroutineParams) error {
 
 	if params.Rotation != "" {
 		args["vf"] = "transpose=0"
+		args["bf"] = "0"
+		args["c:v"] = "libx264"
 	}
 
 	err := ffmpeg.Input(params.Source , ffmpeg.KwArgs{"rtsp_transport": "tcp"}).
