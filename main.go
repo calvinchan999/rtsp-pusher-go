@@ -34,7 +34,7 @@ type GoroutineParams struct {
 }
 
 func main() {
-	byteValue, err := os.Open("./config.json")
+	byteValue, err := os.Open("./config/config.json")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -95,9 +95,8 @@ func runFFmpegCommand(params GoroutineParams) error {
 	log.Printf(params.Rotation)
 	if params.Rotation != "" {
 		cmdArgs = append(cmdArgs,
-			"-rtsp_transport", "udp",
 			"-i", params.Source,
-			"-f", "rtsp",
+			"-f", "flv",
 			"-s", params.Resolution,
 			"-r", "15",
 			"-c:a", "copy",
@@ -111,9 +110,8 @@ func runFFmpegCommand(params GoroutineParams) error {
 		)
 	}else {
 		cmdArgs = append(cmdArgs, 
-			"-rtsp_transport", "udp",
 			"-i", params.Source,
-			"-f", "rtsp",
+			"-f", "flv",
 			"-s", params.Resolution,
 			"-r", "15",
 			"-c:a", "copy",
