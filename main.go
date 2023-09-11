@@ -14,7 +14,7 @@ type Camera struct {
 	Source     string `json:"source"`
 	Target     string `json:"target"`
 	Resolution string `json:"resolution"`
-	Framerate  string    `json:"framerate"`
+	Framerate  string `json:"framerate"`
 	Encoder    string `json:"encoder"`
 	Rotation   string `json:"rotation"`
 }
@@ -99,7 +99,7 @@ func runFFmpegCommand(params GoroutineParams) error {
 			"-i", params.Source,
 			"-f", "rtsp",
 			"-s", params.Resolution,
-			"-r", params.Framerate,
+			"-r", "15",
 			"-c:a", "copy",
 			"-c:v", "libx264",
 			"-vf", params.Rotation,
@@ -115,7 +115,7 @@ func runFFmpegCommand(params GoroutineParams) error {
 			"-i", params.Source,
 			"-f", "rtsp",
 			"-s", params.Resolution,
-			"-r", params.Framerate,
+			"-r", "15",
 			"-c:a", "copy",
 			"-c:v", "copy",
 			"-preset", "veryfast",
