@@ -2,24 +2,21 @@ package main
 
 import (
 	"encoding/json"
-	// "fmt"
-	// "io/ioutil"
-	"os"
 	"log"
+	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
-
-	ffmpeg "github.com/u2takey/ffmpeg-go"
 )
 
 type Camera struct {
 	Source     string `json:"source"`
 	Target     string `json:"target"`
 	Resolution string `json:"resolution"`
-	Framerate  int    `json:"framerate"`
+	Framerate  string    `json:"framerate"`
 	Encoder    string `json:"encoder"`
-	Rotation   string `json:"rotation`
+	Rotation   string `json:"rotation"`
 }
 
 type Config struct {
@@ -30,7 +27,7 @@ type GoroutineParams struct {
 	Source     string
 	Target     string
 	Resolution string
-	Framerate  int
+	Framerate  string
 	Encoder    string
 	Rotation   string
 	Index      int
@@ -43,11 +40,6 @@ func main() {
 	}
 
 	var config Config
-	// if err := json.Unmarshal(byteValue, &config); err != nil {
-	// 	log.Println("Failed to unmarshal JSON:", err)
-	// 	return
-	// }
-
 	if err := json.NewDecoder(byteValue).Decode(&config); err != nil {
 		log.Println("Failed to decode JSON:", err)
 	}
@@ -82,7 +74,7 @@ func processCamera(wg *sync.WaitGroup, goroutineChannel chan struct{}, params Go
 		<-goroutineChannel // Release the spot in the channel
 
 		if err != nil {
-			log.Println("Failed to build FFmpeg command:", err)
+			log.Println("Failed to execute FFmpeg command:", err)
 		} else {
 			log.Println("Disconnect")
 		}
@@ -95,30 +87,50 @@ func runFFmpegCommand(params GoroutineParams) error {
 	tgLast := lastPathComponent(params.Target)
 
 	log.Printf("Channel: %v Source Name: %v Target Name: %v\n", params.Index, srcLast, tgLast)
+	
+	// fpsString := strconv.Itoa(params.Framerate) // not work
 
-	args := ffmpeg.KwArgs{
-		"format":     "rtsp",
-		"s":          params.Resolution,
-		"r":          params.Framerate,
-		"c:a":        "copy",
-		"c:v":        params.Encoder,
-		"preset":	  "veryfast",
-		"tune":		  "zerolatency",
-		"flags":	  "low_delay",
-	}
+	cmdArgs := []string{}
 
+	log.Printf(params.Rotation)
 	if params.Rotation != "" {
-		args["vf"] = "transpose=0"
-		args["bf"] = "0"
-		args["c:v"] = "libx264"
+		cmdArgs = append(cmdArgs,
+			"-rtsp_transport", "udp",
+			"-i", params.Source,
+			"-f", "rtsp",
+			"-s", params.Resolution,
+			"-r", params.Framerate,
+			"-c:a", "copy",
+			"-c:v", "libx264",
+			"-vf", params.Rotation,
+			"-preset", "veryfast",
+			"-tune", "zerolatency",
+			"-flags", "low_delay",
+			"-use_wallclock_as_timestamps", "1",
+			"-y", params.Target,
+		)
+	}else {
+		cmdArgs = append(cmdArgs, 
+			"-rtsp_transport", "udp",
+			"-i", params.Source,
+			"-f", "rtsp",
+			"-s", params.Resolution,
+			"-r", params.Framerate,
+			"-c:a", "copy",
+			"-c:v", "copy",
+			"-preset", "veryfast",
+			"-tune", "zerolatency",
+			"-flags", "low_delay",
+			"-use_wallclock_as_timestamps", "1",
+			"-y", params.Target,
+		)
 	}
 
-	err := ffmpeg.Input(params.Source , ffmpeg.KwArgs{"rtsp_transport": "tcp"}).
-		Output(params.Target, args).
-		OverWriteOutput().
-		ErrorToStdOut().
-		Run()
+	cmd := exec.Command("ffmpeg", cmdArgs...)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
 
+	err := cmd.Run()
 	return err
 }
 
