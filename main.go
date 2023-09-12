@@ -95,32 +95,33 @@ func runFFmpegCommand(params GoroutineParams) error {
 	log.Printf(params.Rotation)
 	if params.Rotation != "" {
 		cmdArgs = append(cmdArgs,
+			"-flags", "low_delay",
 			"-i", params.Source,
-			"-f", "flv",
 			"-s", params.Resolution,
 			"-r", "15",
 			"-c:a", "copy",
 			"-c:v", "libx264",
-			"-vf", params.Rotation,
-			"-preset", "veryfast",
+			"-vf",  params.Rotation,
+			"-preset", "ultrafast",
 			"-tune", "zerolatency",
-			"-flags", "low_delay",
 			"-use_wallclock_as_timestamps", "1",
-			"-y", params.Target,
+			"-f", "flv",
+			params.Target,
 		)
 	}else {
-		cmdArgs = append(cmdArgs, 
+		cmdArgs = append(cmdArgs,
+			"-flags", "low_delay", 
 			"-i", params.Source,
-			"-f", "flv",
 			"-s", params.Resolution,
 			"-r", "15",
 			"-c:a", "copy",
 			"-c:v", "copy",
-			"-preset", "veryfast",
+			"-preset", "ultrafast",
 			"-tune", "zerolatency",
-			"-flags", "low_delay",
 			"-use_wallclock_as_timestamps", "1",
-			"-y", params.Target,
+			"-an",
+			"-f", "flv",
+			params.Target,
 		)
 	}
 
