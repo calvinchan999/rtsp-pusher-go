@@ -11,12 +11,12 @@ import (
 )
 
 type Camera struct {
-	Source     string `json:"source"`
-	Target     string `json:"target"`
-	Resolution string `json:"resolution"`
-	Framerate  string `json:"framerate"`
-	Encoder    string `json:"encoder"`
-	Rotation   string `json:"rotation"`
+	Source      string `json:"source"`
+	Target      string `json:"target"`
+	Resolution  string `json:"resolution"`
+	Framerate   string `json:"framerate"`
+	Encoder     string `json:"encoder"`
+	Filter      string `json:"filter"`
 }
 
 type Config struct {
@@ -24,13 +24,13 @@ type Config struct {
 }
 
 type GoroutineParams struct {
-	Source     string
-	Target     string
-	Resolution string
-	Framerate  string
-	Encoder    string
-	Rotation   string
-	Index      int
+	Source      string
+	Target      string
+	Resolution  string
+	Framerate   string
+	Encoder     string
+	Filter      string
+	Index       int
 }
 
 func main() {
@@ -50,13 +50,13 @@ func main() {
 
 	for i, camera := range config.Cameras {
 		params := GoroutineParams{
-			Source:     camera.Source,
-			Target:     camera.Target,
-			Resolution: camera.Resolution,
-			Framerate:  camera.Framerate,
-			Encoder:    camera.Encoder,
-			Rotation:   camera.Rotation,
-			Index:      i + 1,
+			Source:      camera.Source,
+			Target:      camera.Target,
+			Resolution:  camera.Resolution,
+			Framerate:   camera.Framerate,
+			Encoder:     camera.Encoder,
+			Filter:      camera.Filter,
+			Index:       i + 1,
 		}
 
 		wg.Add(1)
@@ -92,8 +92,40 @@ func runFFmpegCommand(params GoroutineParams) error {
 
 	cmdArgs := []string{}
 
-	log.Printf(params.Rotation)
-	if params.Rotation != "" {
+	// log.Printf(params.Rotation)
+	// if params.Rotation != "" {
+	// 	cmdArgs = append(cmdArgs,
+	// 		"-flags", "low_delay",
+	// 		"-i", params.Source,
+	// 		"-s", params.Resolution,
+	// 		"-r", params.Framerate,
+	// 		"-c:a", "copy",
+	// 		"-c:v", "libx264",
+	// 		"-vf", "transpose=1, drawtext=fontfile='./OpenSans.ttf':fontsize=90:fontcolor=white:x=70:y=100:text='word'",
+	// 		"-preset", "ultrafast",
+	// 		"-tune", "zerolatency",
+	// 		"-use_wallclock_as_timestamps", "1",
+	// 		"-f", "flv",
+	// 		params.Target,
+	// 	)
+	// }else {
+	// 	cmdArgs = append(cmdArgs,
+	// 		"-flags", "low_delay", 
+	// 		"-i", params.Source,
+	// 		"-s", params.Resolution,
+	// 		"-r", params.Framerate,
+	// 		"-filter:v", "drawtext=fontfile='./OpenSans.ttf':fontsize=90:fontcolor=white:x=50:y=(h-text_h)-50:text='word'",
+	// 		"-c:a", "copy",
+	// 		"-c:v", "libx264",
+	// 		"-preset", "ultrafast",
+	// 		"-tune", "zerolatency",
+	// 		"-use_wallclock_as_timestamps", "1",
+	// 		"-an",
+	// 		"-f", "flv",
+	// 		params.Target,
+	// 	)
+	// }
+
 		cmdArgs = append(cmdArgs,
 			"-flags", "low_delay",
 			"-i", params.Source,
@@ -101,29 +133,13 @@ func runFFmpegCommand(params GoroutineParams) error {
 			"-r", params.Framerate,
 			"-c:a", "copy",
 			"-c:v", "libx264",
-			"-vf",  params.Rotation,
+			"-vf",params.Filter,
 			"-preset", "ultrafast",
 			"-tune", "zerolatency",
 			"-use_wallclock_as_timestamps", "1",
 			"-f", "flv",
 			params.Target,
 		)
-	}else {
-		cmdArgs = append(cmdArgs,
-			"-flags", "low_delay", 
-			"-i", params.Source,
-			"-s", params.Resolution,
-			"-r", params.Framerate,
-			"-c:a", "copy",
-			"-c:v", "libx264",
-			"-preset", "ultrafast",
-			"-tune", "zerolatency",
-			"-use_wallclock_as_timestamps", "1",
-			"-an",
-			"-f", "flv",
-			params.Target,
-		)
-	}
 
 	cmd := exec.Command("ffmpeg", cmdArgs...)
 	cmd.Stderr = os.Stderr

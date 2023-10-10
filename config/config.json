@@ -4,20 +4,22 @@
       "source": "rtsp://admin:rvautotech2015@169.254.33.165:554/Streaming/Channels/101",
       "target": "rtmp://demo-media-vm.eastasia.cloudapp.azure.com:1935/RV-ROBOT-1.1",
       "resolution": "480x270",
-      "framerate": "15"
+      "framerate": "20",
+      "filter":"drawtext=fontfile='./OpenSans.ttf':fontsize=90:fontcolor=white:x=50:y=(h-text_h)-50:text='front'"
     },
     {
       "source": "rtsp://admin:rvautotech2015@169.254.33.165:554/Streaming/Channels/101",
       "target": "rtmp://demo-media-vm.eastasia.cloudapp.azure.com:1935/RV-ROBOT-1.2",
       "resolution": "480x270",
-      "framerate": "15"
+      "framerate": "20",
+      "filter":"drawtext=fontfile='./OpenSans.ttf':fontsize=90:fontcolor=white:x=50:y=(h-text_h)-50:text='thermal'"
     },
     {
       "source": "rtsp://admin:rvautotech2015@169.254.33.165:554/Streaming/Channels/101",
       "target": "rtmp://demo-media-vm.eastasia.cloudapp.azure.com:1935/RV-ROBOT-1.3",
       "resolution": "480x270",
-      "framerate": "15",
-      "rotation": "transpose=1"
+      "framerate": "20",
+      "filter": "transpose=1, drawtext=fontfile='./OpenSans.ttf':fontsize=90:fontcolor=white:x=50:y=50:text='fisheye'"
     }
   ]
 }
