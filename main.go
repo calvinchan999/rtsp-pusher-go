@@ -125,7 +125,7 @@ func runFFmpegCommand(params GoroutineParams) error {
 	// 		params.Target,
 	// 	)
 	// }
-
+	if params.Filter != "" {
 		cmdArgs = append(cmdArgs,
 			"-flags", "low_delay",
 			"-i", params.Source,
@@ -133,14 +133,30 @@ func runFFmpegCommand(params GoroutineParams) error {
 			"-r", params.Framerate,
 			"-c:a", "copy",
 			"-c:v", "libx264",
-			"-vf",params.Filter,
+			"-vf", params.Filter,
 			"-preset", "ultrafast",
 			"-tune", "zerolatency",
 			"-use_wallclock_as_timestamps", "1",
+			"-an",
 			"-f", "flv",
 			params.Target,
 		)
-
+	} else {
+		cmdArgs = append(cmdArgs,
+			"-flags", "low_delay", 
+			"-i", params.Source,
+			"-s", params.Resolution,
+			"-r", params.Framerate,
+			"-c:a", "copy",
+			"-c:v", "libx264",
+			"-preset", "ultrafast",
+			"-tune", "zerolatency",
+			"-use_wallclock_as_timestamps", "1",
+			"-an",
+			"-f", "flv",
+			params.Target,
+		)
+	}
 	cmd := exec.Command("ffmpeg", cmdArgs...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
