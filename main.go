@@ -44,7 +44,7 @@ func main() {
 		log.Println("Failed to decode JSON:", err)
 	}
 
-	concurrencyLimit := 8 // Adjust the value based on your system's capabilities
+	concurrencyLimit := 4 // Adjust the value based on your system's capabilities
 	goroutineChannel := make(chan struct{}, concurrencyLimit)
 	var wg sync.WaitGroup
 
