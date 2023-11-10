@@ -95,42 +95,10 @@ func runFFmpegCommand(params GoroutineParams) error {
 
 	cmdArgs := []string{}
 
-	// log.Printf(params.Rotation)
-	// if params.Rotation != "" {
-	// 	cmdArgs = append(cmdArgs,
-	// 		"-flags", "low_delay",
-	// 		"-i", params.Source,
-	// 		"-s", params.Resolution,
-	// 		"-r", params.Framerate,
-	// 		"-c:a", "copy",
-	// 		"-c:v", "libx264",
-	// 		"-vf", "transpose=1, drawtext=fontfile='./OpenSans.ttf':fontsize=90:fontcolor=white:x=70:y=100:text='word'",
-	// 		"-preset", "ultrafast",
-	// 		"-tune", "zerolatency",
-	// 		"-use_wallclock_as_timestamps", "1",
-	// 		"-f", "flv",
-	// 		params.Target,
-	// 	)
-	// }else {
-	// 	cmdArgs = append(cmdArgs,
-	// 		"-flags", "low_delay", 
-	// 		"-i", params.Source,
-	// 		"-s", params.Resolution,
-	// 		"-r", params.Framerate,
-	// 		"-filter:v", "drawtext=fontfile='./OpenSans.ttf':fontsize=90:fontcolor=white:x=50:y=(h-text_h)-50:text='word'",
-	// 		"-c:a", "copy",
-	// 		"-c:v", "libx264",
-	// 		"-preset", "ultrafast",
-	// 		"-tune", "zerolatency",
-	// 		"-use_wallclock_as_timestamps", "1",
-	// 		"-an",
-	// 		"-f", "flv",
-	// 		params.Target,
-	// 	)
-	// }
 	if params.Filter != "" {
 		cmdArgs = append(cmdArgs,
 			"-flags", "low_delay",
+			"-timeout", "30000000", // 30s
 			"-i", params.Source,
 			"-s", params.Resolution,
 			"-r", params.Framerate,
@@ -148,6 +116,7 @@ func runFFmpegCommand(params GoroutineParams) error {
 	} else {
 		cmdArgs = append(cmdArgs,
 			"-flags", "low_delay", 
+			"-timeout", "30000000", // 30s
 			"-i", params.Source,
 			"-s", params.Resolution,
 			"-r", params.Framerate,
