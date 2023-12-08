@@ -97,6 +97,7 @@ func runFFmpegCommand(params GoroutineParams) error {
 
 	if params.Filter != "" {
 		cmdArgs = append(cmdArgs,
+			"-rtsp_transport", "tcp",
 			"-flags", "low_delay",
 			"-timeout", "30000000", // 30s
 			"-i", params.Source,
@@ -115,6 +116,7 @@ func runFFmpegCommand(params GoroutineParams) error {
 		)
 	} else {
 		cmdArgs = append(cmdArgs,
+			"-rtsp_transport", "tcp",
 			"-flags", "low_delay", 
 			"-timeout", "30000000", // 30s
 			"-i", params.Source,
