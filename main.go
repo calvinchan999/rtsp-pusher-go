@@ -18,6 +18,7 @@ type Camera struct {
 	Encoder     string `json:"encoder"`
 	Filter      string `json:"filter"`
 	Bitrate		string `json:"bitrate"`
+	Crf		string `json:"crf"`
 }
 
 type Config struct {
@@ -32,6 +33,7 @@ type GoroutineParams struct {
 	Encoder     string
 	Filter      string
 	Bitrate		string
+	Crf			string
 	Index       int
 }
 
@@ -46,7 +48,7 @@ func main() {
 		log.Println("Failed to decode JSON:", err)
 	}
 
-	concurrencyLimit := 30 // Adjust the value based on your system's capabilities
+	concurrencyLimit := 25 // Adjust the value based on your system's capabilities
 	goroutineChannel := make(chan struct{}, concurrencyLimit)
 	var wg sync.WaitGroup
 
@@ -59,6 +61,7 @@ func main() {
 			Encoder:     camera.Encoder,
 			Filter:      camera.Filter,
 			Bitrate:	 camera.Bitrate,
+			Crf:		 camera.Crf,
 			Index:       i + 1,
 		}
 
@@ -107,9 +110,10 @@ func runFFmpegCommand(params GoroutineParams) error {
 			"-c:v", "libx264",
 			"-vf", params.Filter,
 			"-b:v", params.Bitrate,
-			"-preset", "ultrafast",
+			"-preset", "slow",
 			"-tune", "zerolatency",
-			"-threads", "3",
+			"-threads", "4",
+			"-crf", params.Crf,
 			"-use_wallclock_as_timestamps", "1",
 			"-an",
 			"-f", "flv",
@@ -126,9 +130,10 @@ func runFFmpegCommand(params GoroutineParams) error {
 			"-c:a", "copy",
 			"-c:v", "libx264",
 			"-b:v", params.Bitrate,
-			"-preset", "ultrafast",
+			"-preset", "slow",
 			"-tune", "zerolatency",
-			"-threads", "3",
+			"-threads", "4",
+			"-crf", params.Crf,
 			"-use_wallclock_as_timestamps", "1",
 			"-an",
 			"-f", "flv",
