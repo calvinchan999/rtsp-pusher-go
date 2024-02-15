@@ -97,49 +97,61 @@ func runFFmpegCommand(params GoroutineParams) error {
 	// fpsString := strconv.Itoa(params.Framerate) // not work
 
 	cmdArgs := []string{}
-
-	if params.Filter != "" {
+	if strings.Contains(params.Target, "rtsp") {
 		cmdArgs = append(cmdArgs,
-			"-rtsp_transport", "tcp",
-			"-flags", "low_delay",
-			"-timeout", "30000000", // 30s
-			"-i", params.Source,
-			"-s", params.Resolution,
-			"-r", params.Framerate,
-			"-c:a", "copy",
-			"-c:v", "libx264",
-			"-vf", params.Filter,
-			"-b:v", params.Bitrate,
-			"-preset", "slow",
-			"-tune", "zerolatency",
-			"-threads", "4",
-			"-crf", params.Crf,
-			"-use_wallclock_as_timestamps", "1",
-			"-an",
-			"-f", "flv",
-			params.Target,
-		)
+				"-fflags", "+genpts",
+				"-rtsp_transport", "tcp",
+				"-timeout", "30000000", // 30s
+				"-i", params.Source,
+				"-c", "copy",
+				"-f", "rtsp",
+				params.Target,
+			)
 	} else {
-		cmdArgs = append(cmdArgs,
-			"-rtsp_transport", "tcp",
-			"-flags", "low_delay", 
-			"-timeout", "30000000", // 30s
-			"-i", params.Source,
-			"-s", params.Resolution,
-			"-r", params.Framerate,
-			"-c:a", "copy",
-			"-c:v", "libx264",
-			"-b:v", params.Bitrate,
-			"-preset", "slow",
-			"-tune", "zerolatency",
-			"-threads", "4",
-			"-crf", params.Crf,
-			"-use_wallclock_as_timestamps", "1",
-			"-an",
-			"-f", "flv",
-			params.Target,
-		)
+		if params.Filter != "" {
+			cmdArgs = append(cmdArgs,
+				"-rtsp_transport", "tcp",
+				"-flags", "low_delay",
+				"-timeout", "30000000", // 30s
+				"-i", params.Source,
+				"-s", params.Resolution,
+				"-r", params.Framerate,
+				"-c:a", "copy",
+				"-c:v", "libx264",
+				"-vf", params.Filter,
+				"-b:v", params.Bitrate,
+				"-preset", "ultrafast",
+				"-tune", "zerolatency",
+				"-threads", "2",
+				"-crf", params.Crf,
+				"-use_wallclock_as_timestamps", "1",
+				"-an",
+				"-f", "flv",
+				params.Target,
+			)
+		} else {
+			cmdArgs = append(cmdArgs,
+				"-rtsp_transport", "tcp",
+				"-flags", "low_delay", 
+				"-timeout", "30000000", // 30s
+				"-i", params.Source,
+				"-s", params.Resolution,
+				"-r", params.Framerate,
+				"-c:a", "copy",
+				"-c:v", "libx264",
+				"-b:v", params.Bitrate,
+				"-preset", "ultrafast",
+				"-tune", "zerolatency",
+				"-threads", "2",
+				"-crf", params.Crf,
+				"-use_wallclock_as_timestamps", "1",
+				"-an",
+				"-f", "flv",
+				params.Target,
+			)
+		}
 	}
+
 	cmd := exec.Command("ffmpeg", cmdArgs...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
