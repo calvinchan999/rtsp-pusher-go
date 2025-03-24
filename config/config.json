@@ -8,7 +8,7 @@
       "encoder": "libx264",
       "bitrate": "100k",
       "crf": "23",
-      "enabled": "false"
+      "enabled": false
     },
     {
       "source": "rtsp://admin:rvautotech2015@169.254.33.165:554/Streaming/Channels/101",
@@ -19,7 +19,7 @@
       "encoder": "libx264",
       "bitrate": "100k",
       "crf": "18",
-      "enabled": "true"
+      "enabled": false
     },
     {
       "source": "rtsp://admin:rvautotech2015@169.254.33.165:554/Streaming/Channels/101",
@@ -30,12 +30,12 @@
       "encoder": "libx264",
       "bitrate": "100k",
       "crf": "23",
-      "enabled": "false"
+      "enabled": false
     },
     {
       "source": "rtsp://admin:rvautotech2015@169.254.33.165:554/Streaming/Channels/101",
       "target": "rtsp://127.0.0.1:8554/C1",
-      "enabled": "true"
+      "enabled": false
     }
   ]
 }

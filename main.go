@@ -7,12 +7,28 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 	"runtime"
 	"github.com/gorilla/mux"
+)
+
+const (
+    defaultEncoder    = "libx264"
+    defaultBitrate   = "100k"
+    defaultCrf       = "18"
+    defaultResolution = "480x270"
+    defaultFramerate = "15"
+    defaultEnabled   = "true"
+    
+    apiPort         = ":8080"
+    configReloadInterval = 60 * time.Second
+    processCheckInterval = 5 * time.Second
+    ffmpegTimeout   = "30000000" // 30s
 )
 
 type Camera struct {
@@ -24,7 +40,7 @@ type Camera struct {
     Encoder    string `json:"encoder,omitempty"`
     Bitrate    string `json:"bitrate,omitempty"`
     Crf        string `json:"crf,omitempty"`
-    Enabled    string `json:"enabled,omitempty"`
+    Enabled    bool   `json:"enabled"`
 }
 
 
@@ -74,28 +90,28 @@ func loadConfig() error {
 	for i := range config.Cameras {
         if strings.HasPrefix(config.Cameras[i].Target, "rtmp://") {
             if config.Cameras[i].Encoder == "" {
-                config.Cameras[i].Encoder = "libx264"
+                config.Cameras[i].Encoder = defaultEncoder
                 configChanged = true
             }
             if config.Cameras[i].Bitrate == "" {
-                config.Cameras[i].Bitrate = "100k"
+                config.Cameras[i].Bitrate = defaultBitrate
                 configChanged = true
             }
             if config.Cameras[i].Crf == "" {
-                config.Cameras[i].Crf = "18"
+                config.Cameras[i].Crf = defaultCrf
                 configChanged = true
             }
             if config.Cameras[i].Resolution == "" {
-                config.Cameras[i].Resolution = "480x270"
+                config.Cameras[i].Resolution = defaultResolution
                 configChanged = true
             }
             if config.Cameras[i].Framerate == "" {
-                config.Cameras[i].Framerate = "15"
+                config.Cameras[i].Framerate = defaultFramerate
                 configChanged = true
             }
         }
-        if config.Cameras[i].Enabled == "" {
-            config.Cameras[i].Enabled = "true"
+        if config.Cameras[i].Enabled == false {
+            config.Cameras[i].Enabled = true
             configChanged = true
         }
     }
@@ -155,15 +171,13 @@ func saveConfig() error {
     return nil
 }
 
-func startControlAPI() {
+func startControlAPI() error {
 	router := mux.NewRouter()
 	router.HandleFunc("/camera/{id}/control", controlCameraHandler).Methods("POST")
 	router.HandleFunc("/camera/status", getCameraStatusHandler).Methods("GET")
 
 	log.Println("Starting control API server on :8080")
-	if err := http.ListenAndServe(":8080", router); err != nil {
-		log.Fatal("Failed to start control API server:", err)
-	}
+	return http.ListenAndServe(":8080", router)
 }
 
 func controlCameraHandler(w http.ResponseWriter, r *http.Request) {
@@ -189,33 +203,16 @@ func controlCameraHandler(w http.ResponseWriter, r *http.Request) {
 
     cameraIndex := cameraID - 1
 
-	configMutex.Lock()
-    // config.Cameras[cameraIndex].Enabled = action.Action
-
-	if action.Action {
-        config.Cameras[cameraIndex].Enabled = "true"
-    } else {
-        config.Cameras[cameraIndex].Enabled = "false"
-    }
-
+    configMutex.Lock()
+    config.Cameras[cameraIndex].Enabled = action.Action
     configMutex.Unlock()
 
-	if !action.Action {
+    if !action.Action {
         cameraProcessMux.Lock()
         if cmd, exists := cameraProcesses[cameraID]; exists {
-            log.Printf("Attempting to terminate process for camera %d", cameraID)
-            if err := cmd.Process.Signal(os.Interrupt); err != nil {
-                log.Printf("Failed to send interrupt signal to process for camera %d: %v", cameraID, err)
+            if err := stopCommand(cmd); err != nil {
+                log.Printf("Failed to stop camera %d: %v", cameraID, err)
             }
-            go func() {
-                err := cmd.Wait()
-                log.Printf("Process for camera %d exited. Error: %v", cameraID, err)
-                cameraProcessMux.Lock()
-                delete(cameraProcesses, cameraID)
-                cameraProcessMux.Unlock()
-            }()
-        } else {
-            log.Printf("No active process found for camera %d", cameraID)
         }
         cameraProcessMux.Unlock()
     }
@@ -226,14 +223,10 @@ func controlCameraHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-	reloadConfig()
-
     w.WriteHeader(http.StatusOK)
-    if action.Action {
-        fmt.Fprintf(w, "Camera %d turned on", cameraID)
-    } else {
-        fmt.Fprintf(w, "Camera %d turned off", cameraID)
-    }
+    json.NewEncoder(w).Encode(map[string]string{
+        "message": fmt.Sprintf("Camera %d turned %s", cameraID, map[bool]string{true: "on", false: "off"}[action.Action]),
+    })
 }
 
 func getCameraStatusHandler(w http.ResponseWriter, r *http.Request) {
@@ -249,7 +242,7 @@ func getCameraStatusHandler(w http.ResponseWriter, r *http.Request) {
 			StreamUrl:  camera.Target,
 			Resolution: camera.Resolution,
 			Framerate:  camera.Framerate,
-			Status:     strings.ToLower(camera.Enabled),
+			Status:     strings.ToLower(fmt.Sprintf("%v", camera.Enabled)),
 		}
 	}
 
@@ -265,27 +258,34 @@ func processCamera(wg *sync.WaitGroup, goroutineChannel chan struct{}, params Go
 
     for {
         goroutineChannel <- struct{}{} // Acquire a spot in the channel
+        
         configMutex.RLock()
         enabled := false
-		if params.Index > 0 && params.Index <= len(config.Cameras) {
-			// enabled = config.Cameras[params.Index-1].Enabled
-			 enabled = strings.ToLower(config.Cameras[params.Index-1].Enabled) == "true"
-		}
+        if params.Index > 0 && params.Index <= len(config.Cameras) {
+            enabled = config.Cameras[params.Index-1].Enabled
+        }
+        camera := config.Cameras[params.Index-1]
         configMutex.RUnlock()
 
-		// Debug
-        // log.Printf("Camera %d enabled status: %v", params.Index, enabled)
-        
         if enabled {
             if cmd == nil {
-                go func() {
-                    cmdMutex.Lock()
-                    cmd = exec.Command("ffmpeg", buildFFmpegArgs(params.Camera)...)
+                cmdMutex.Lock()
+                args := buildFFmpegArgs(camera)
+                if args == nil {
+                    log.Printf("Failed to build FFmpeg arguments for camera %d", params.Index)
                     cmdMutex.Unlock()
-                    
-                    err := cmd.Run()
-                    if err != nil {
-                        log.Printf("FFmpeg command for camera %d exited with error: %v", params.Index, err)
+                    continue
+                }
+                
+                cmd = exec.Command("ffmpeg", args...)
+                // Redirect stdout and stderr to capture logs
+                cmd.Stdout = os.Stdout
+                cmd.Stderr = os.Stderr
+                cmdMutex.Unlock()
+
+                go func() {
+                    if err := cmd.Run(); err != nil {
+                        log.Printf("FFmpeg command for camera %d failed: %v", params.Index, err)
                     }
                     
                     cmdMutex.Lock()
@@ -296,11 +296,7 @@ func processCamera(wg *sync.WaitGroup, goroutineChannel chan struct{}, params Go
         } else {
             cmdMutex.Lock()
             if cmd != nil && cmd.Process != nil {
-                log.Printf("Stopping FFmpeg command for camera %d", params.Index)
-                // if err := cmd.Process.Signal(os.Interrupt); err != nil {
-                //     log.Printf("Failed to stop FFmpeg command for camera %d: %v", params.Index, err)
-                // }
-				if err := stopCommand(cmd); err != nil {
+                if err := stopCommand(cmd); err != nil {
                     log.Printf("Failed to stop FFmpeg command for camera %d: %v", params.Index, err)
                 }
             }
@@ -308,7 +304,7 @@ func processCamera(wg *sync.WaitGroup, goroutineChannel chan struct{}, params Go
         }
         
         <-goroutineChannel // Release the spot in the channel
-        time.Sleep(5 * time.Second)
+        time.Sleep(processCheckInterval)
     }
 }
 
@@ -397,34 +393,62 @@ func lastPathComponent(path string) string {
 }
 
 func main() {
-	if err := loadConfig(); err != nil {
+    if err := loadConfig(); err != nil {
         log.Fatalf("Failed to load configuration: %v", err)
     }
 
-	// Start the HTTP server for the control API
-	go startControlAPI()
+    // Create a channel to handle graceful shutdown
+    stop := make(chan os.Signal, 1)
+    signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
-	go func() {
-        for {
-            time.Sleep(60 * time.Second)
+    // Create an error channel for the API server
+    errChan := make(chan error, 1)
+
+    // Start the HTTP server for the control API
+    go func() {
+        errChan <- startControlAPI()
+    }()
+
+    // Start config reloader
+    ticker := time.NewTicker(configReloadInterval)
+    defer ticker.Stop()
+
+    go func() {
+        for range ticker.C {
             reloadConfig()
         }
     }()
 
-	concurrencyLimit := 25 // Adjust the value based on your system's capabilities
-	goroutineChannel := make(chan struct{}, concurrencyLimit)
-	var wg sync.WaitGroup
+    concurrencyLimit := 25
+    goroutineChannel := make(chan struct{}, concurrencyLimit)
+    var wg sync.WaitGroup
 
-	for i, camera := range config.Cameras {
-		params := GoroutineParams{
-			Camera: camera,
-			Index:  i + 1,
-		}
+    for i, camera := range config.Cameras {
+        params := GoroutineParams{
+            Camera: camera,
+            Index:  i + 1,
+        }
 
-		wg.Add(1)
-		go processCamera(&wg, goroutineChannel, params)
-	}
+        wg.Add(1)
+        go processCamera(&wg, goroutineChannel, params)
+    }
 
-	log.Println("Camera manager started. Use the control API to manage cameras.")
-	wg.Wait() // Wait for all Goroutines to finish
+    // Wait for shutdown signal or error
+    select {
+    case <-stop:
+        log.Println("Shutting down gracefully...")
+        // Implement cleanup logic here
+        // Stop all FFmpeg processes
+        cameraProcessMux.Lock()
+        for id, cmd := range cameraProcesses {
+            if err := stopCommand(cmd); err != nil {
+                log.Printf("Failed to stop camera %d: %v", id, err)
+            }
+        }
+        cameraProcessMux.Unlock()
+    case err := <-errChan:
+        log.Printf("Error from API server: %v", err)
+    }
+
+    log.Println("Shutdown complete")
 }
